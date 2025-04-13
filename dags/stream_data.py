@@ -63,4 +63,3 @@ with DAG('crypto_streaming',
         task_id='stream_data_from_binance',
         python_callable=stream_data
     )
-stream_data()
