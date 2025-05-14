@@ -13,7 +13,7 @@ default_args = {
 
 # Danh sách 10 mã coin cần lấy dữ liệu
 SYMBOLS = ["BNBUSDT", "BTCUSDT", "ETHUSDT", "XRPUSDT", "SOLUSDT",
-           "LTCUSDT", "TRUMPUSDT", "PEPEUSDT", "DOGEUSDT", "ADAUSDT"]
+           "LTCUSDT", "ETCUSDT", "PEPEUSDT", "DOGEUSDT", "ADAUSDT"]
 
 # Hàm lấy dữ liệu từ Binance API
 def get_data(symbol):
@@ -56,7 +56,7 @@ def stream_data():
 # Tạo DAG chạy mỗi 5 phút
 with DAG('crypto_streaming',
          default_args=default_args,
-         schedule_interval='*/5 * * * *',  # Chạy mỗi 5 phút
+         schedule_interval='* * * * *',  # Chạy mỗi 5 phút
          catchup=False) as dag:
 
     streaming_task = PythonOperator(
