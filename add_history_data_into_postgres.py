@@ -49,7 +49,7 @@ def insert_data_into_postgres(conn, df):
 
 if __name__ == "__main__":
     # Đường dẫn đến file CSV chứa dữ liệu lịch sử
-    csv_file = "crypto_history_5m_last_1_year_final.csv"
+    csv_file = r"C:\test_khoaluan\Realtime-Streaming-using-Kafka-from-Binance\crypto_history_5m_last_1_year.csv"
 
     # Đọc dữ liệu từ file CSV
     try:
@@ -64,4 +64,4 @@ if __name__ == "__main__":
     if conn:
         # Chèn dữ liệu vào PostgreSQL
         insert_data_into_postgres(conn, df)
-        conn.close()
+        conn.close()    

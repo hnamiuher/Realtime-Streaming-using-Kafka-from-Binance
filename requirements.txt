@@ -2,6 +2,14 @@ apache-airflow
 apache-airflow-providers-http
 kafka-python
 requests
-scikit-learn
 pandas
 xgboost
+PyWavelets
+numpy
+psycopg2-binary
+SQLAlchemy
+joblib
+scikit-learn
+scipy
+statsmodels
+nolds

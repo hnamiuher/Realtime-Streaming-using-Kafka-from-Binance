@@ -1,3 +1,11 @@
 
 
 tmp/
+models/
+plots/
+__pycache__/
+logs/
+XGboost_models/
+LSTM_models/
+env/
+tmp_model/

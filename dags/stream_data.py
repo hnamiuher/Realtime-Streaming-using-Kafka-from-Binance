@@ -3,7 +3,9 @@ import requests
 from datetime import datetime
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from kafka import KafkaProducer
+from kafka import KafkaProducer, KafkaConsumer
+import psycopg2
+import logging
 
 # Thiết lập thông số DAG
 default_args = {
@@ -12,8 +14,7 @@ default_args = {
 }
 
 # Danh sách 10 mã coin cần lấy dữ liệu
-SYMBOLS = ["BNBUSDT", "BTCUSDT", "ETHUSDT", "XRPUSDT", "SOLUSDT",
-           "LTCUSDT", "ETCUSDT", "PEPEUSDT", "DOGEUSDT", "ADAUSDT"]
+SYMBOLS = ["BNBUSDT", "1INCHUSDT", "AXSUSDT", "ENJUSDT", "XLMUSDT"]
 
 # Hàm lấy dữ liệu từ Binance API
 def get_data(symbol):
@@ -53,13 +54,77 @@ def stream_data():
         except Exception as e:
             print(f"Error streaming data for {symbol}: {e}")
 
+def consume_from_kafka_and_store():
+    records = 0
+
+    consumer = KafkaConsumer(
+        'crypto_kline',
+        bootstrap_servers=['broker:29092'],
+        group_id='airflow_batch_consumer',
+        auto_offset_reset='earliest',
+        enable_auto_commit=True,
+        value_deserializer=lambda m: json.loads(m.decode('utf-8')),
+        consumer_timeout_ms=15000  # Dừng nếu quá 15s không có dữ liệu
+    )
+
+    conn = psycopg2.connect(
+        dbname="airflow",
+        user="airflow",
+        password="airflow",
+        host="postgres",
+        port="5432"
+    )
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS crypto_data (
+            symbol TEXT NOT NULL,
+            time TIMESTAMP NOT NULL,
+            open FLOAT,
+            high FLOAT,
+            low FLOAT,
+            close FLOAT,
+            volume FLOAT,
+            PRIMARY KEY (symbol, time)
+        );
+    """)
+    conn.commit()
+
+    for msg in consumer:
+        d = msg.value
+        print(f"📥 {records+1} - Received: {d}")
+
+        cursor.execute("""
+            INSERT INTO crypto_data (symbol, time, open, high, low, close, volume)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (symbol, time) DO NOTHING;
+        """, (
+            d["symbol"],datetime.fromtimestamp(d["time"] / 1000),
+            d["open"], d["high"], d["low"], d["close"], d["volume"]
+        ))
+
+        records += 1
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    consumer.close()
+
+    print(f"✅ Inserted {records} records into PostgreSQL and exited.")
+
 # Tạo DAG chạy mỗi 5 phút
 with DAG('crypto_streaming',
          default_args=default_args,
-         schedule_interval='* * * * *',  # Chạy mỗi 5 phút
+         schedule_interval='*/5 * * * *',  # Chạy mỗi 5 phút
          catchup=False) as dag:
 
     streaming_task = PythonOperator(
         task_id='stream_data_from_binance',
         python_callable=stream_data
     )
+    consume_from_kafka = PythonOperator(
+        task_id='consume_kafka_to_postgres',
+        python_callable=consume_from_kafka_and_store
+    )
+
+    streaming_task >> consume_from_kafka

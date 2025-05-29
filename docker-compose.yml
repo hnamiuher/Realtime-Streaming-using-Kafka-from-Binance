@@ -110,7 +110,7 @@ services:
       - postgres
     environment:
       - LOAD_EX=n
-      - EXECUTOR=Sequential
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
       - AIRFLOW_WEBSERVER_SECRET_KEY=this_is_a_very_secured_key
     logging:
@@ -119,8 +119,10 @@ services:
         max-file: "3"
     volumes:
       - ./dags:/opt/airflow/dags
+      - ./models:/opt/airflow/models
       - ./script:/opt/airflow/script
       - ./requirements.txt:/opt/airflow/requirements.txt
+      - ./logs:/opt/airflow/logs
     ports:
       - "8080:8080"
     healthcheck:
@@ -138,11 +140,13 @@ services:
         condition: service_healthy
     volumes:
       - ./dags:/opt/airflow/dags
+      - ./models:/opt/airflow/models
       - ./script:/opt/airflow/script
       - ./requirements.txt:/opt/airflow/requirements.txt
+      - ./logs:/opt/airflow/logs
     environment:
       - LOAD_EX=n
-      - EXECUTOR=Sequential
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
       - AIRFLOW_WEBSERVER_SECRET_KEY=this_is_a_very_secured_key
     command: bash -c "pip install -r ./requirements.txt && airflow db upgrade && airflow scheduler"
@@ -183,21 +187,21 @@ services:
     networks:
       - confluent
 
-  cassandra_db:
-    image: cassandra:latest
-    container_name: cassandra
-    hostname: cassandra
-    ports:
-      - "9042:9042"
-    environment:
-      - MAX_HEAP_SIZE=512M
-      - HEAP_NEWSIZE=100M
-      - CASSANDRA_USERNAME=cassandra
-      - CASSANDRA_PASSWORD=cassandra
-    volumes:
-      - cassandra_data:/var/lib/cassandra # Gắn volume để lưu dữ liệu Cassandra
-    networks:
-      - confluent
+  # cassandra_db:
+  #   image: cassandra:latest
+  #   container_name: cassandra
+  #   hostname: cassandra
+  #   ports:
+  #     - "9042:9042"
+  #   environment:
+  #     - MAX_HEAP_SIZE=512M
+  #     - HEAP_NEWSIZE=100M
+  #     - CASSANDRA_USERNAME=cassandra
+  #     - CASSANDRA_PASSWORD=cassandra
+  #   volumes:
+  #     - cassandra_data:/var/lib/cassandra # Gắn volume để lưu dữ liệu Cassandra
+  #   networks:
+  #     - confluent
 
   grafana:
     image: grafana/grafana:latest
